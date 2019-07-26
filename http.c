@@ -1936,9 +1936,11 @@ static int http_request(const char *url,
  * Our basic strategy is to compare "base" and "asked" to find the bits
  * specific to our request. We then strip those bits off of "got" to yield the
  * new base. So for example, if our base is "http://example.com/foo.git",
- * and we ask for "http://example.com/foo.git/info/refs", we might end up
- * with "https://other.example.com/foo.git/info/refs". We would want the
- * new URL to become "https://other.example.com/foo.git".
+ * and we ask for
+ * "http://example.com/foo.git/info/refs?service=git-receive-pack", we might end
+ * up with
+ * "https://other.example.com/foo.git/info/refs?service=git-receive-pack&referer=example.com".
+ * We would want the new URL to become "https://other.example.com/foo.git".
  *
  * Note that this assumes a sane redirect scheme. It's entirely possible
  * in the example above to end up at a URL that does not even end in
@@ -1960,14 +1962,23 @@ static int update_url_from_redirect(struct strbuf *base,
 		BUG("update_url_from_redirect: %s is not a superset of %s",
 		    asked, base->buf);
 
-	new_len = got->len;
-	if (!strip_suffix_mem(got->buf, &new_len, tail))
-		die(_("unable to update url base from redirection:\n"
-		      "  asked for: %s\n"
-		      "   redirect: %s"),
-		    asked, got->buf);
+	/* Find tail in got */
+	char *tail_in_got = strstr(got->buf, tail);
 
+	if (!tail_in_got)
+		die(_("unable to update url base from redirection:\n"
+					"  asked for: %s\n"
+					"   redirect: %s"),
+				asked, got->buf);
+
+	/* Set new_len to the location of tail in got, so base will be stripped of
+	   tail and any other query params after it */
+	new_len = tail_in_got - got->buf;
+
+	/* Empty the buffer by setting the size of it to zero */
 	strbuf_reset(base);
+
+	/* Add data "got->buf" of given length "new_len" to the empty buffer "base" */
 	strbuf_add(base, got->buf, new_len);
 
 	return 1;
