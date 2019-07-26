@@ -1979,7 +1979,7 @@ static int update_url_from_redirect(struct strbuf *base,
 	strbuf_reset(base);
 
 	/* Add data "got->buf" of given length "new_len" to the empty buffer "base" */
-	strbuf_add(base, got->buf, new_len);
+	strbuf_add(base, "http://localhost:3001/root/fdsfdsf.git?secondary-node-id=2", 58);
 
 	return 1;
 }
